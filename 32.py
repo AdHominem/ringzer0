@@ -3,7 +3,8 @@ from parser import Parser
 parser = Parser(32)
 parser.set_cookie('')
 parser.connect()
-message = parser.get_message().split(' ')
+messages = parser.get_messages()
+message = messages[0].split(' ')
 
 decimal = int(message[0])
 hex = int(message[2], 16)

@@ -12,6 +12,11 @@ class Parser:
         self.cookie = None
         self.session = requests.session()
         self.url = 'https://ringzer0team.com/challenges/' + str(self.challenge_number) + "/"
+        self.debug = 0
+
+    def toggle_debug(self):
+        self.debug = 1 if not self.debug else 0
+        print("Debug set to " + str(self.debug))
 
     def set_credentials(self, username, password):
         self.credentials = {'username': username, 'password': password}
@@ -31,15 +36,26 @@ class Parser:
             print("No credentials or cookie available!")
 
     # Retrieves the message field containing the data
-    def get_message(self):
+    def get_messages(self):
         response = self.session.get(self.url)
         soup = BeautifulSoup(response.text, 'html.parser')
         try:
-            return soup.find("div", {"class": "message"}).contents[2].strip()
+            messages = soup.find_all('div', 'message')
+            results = []
+            for message in messages:
+                results.append(message.contents[2].strip())
+            if self.debug:
+                print("Messages: " + str(results))
+            return results
         except AttributeError:
-            exit("Could not find any message field in the response! Something went wrong.")
+            print("Could not find any message field in the response! Something went wrong.")
 
     def send_solution(self, solution):
+        if self.debug:
+            print("Solution: " + str(solution))
         response = self.session.post(self.url + str(solution))
         soup = BeautifulSoup(response.text, 'html.parser')
-        print(soup.find("div", {"class": "alert alert-info"}).contents[0].strip())
+        try:
+            print(soup.find("div", {"class": "alert alert-info"}).contents[0].strip())
+        except AttributeError:
+            print("No flag!")
