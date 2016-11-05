@@ -47,3 +47,13 @@ class RainbowTable:
         cipher.update(data.encode())
         return binascii.hexlify(cipher.digest()).decode()
 
+
+def xor(message, key):
+    assert len(message) == len(key)
+
+    message_as_integer = int(message, 16)
+    key_as_integer = int(key, 16)
+    result = message_as_integer ^ key_as_integer
+    # Technically it would be okay just to return the hex() value of result, but we want a byte array
+    result_as_bytes = result.to_bytes(18, byteorder='big')
+    return binascii.hexlify(result_as_bytes)
