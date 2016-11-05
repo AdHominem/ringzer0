@@ -1,17 +1,35 @@
 import time
+import types
 
 
+# Class for measuring and accumulating time over intervals
 class Timer:
     def __init__(self, name):
         self.name = name
         self.start = 0
         self.stop = 0
+        self.elapsed = 0
 
-    def start_timer(self):
+    def go(self):
         self.start = time.time()
 
-    def stop_timer(self):
+    def pause(self):
         self.stop = time.time()
+        self.elapsed += self.stop - self.start
 
+    # If self.stop hasn't been set, this function will do it
     def print(self):
-        print("Milliseconds elapsed for segment " + str(self.name) + ": " + str((self.stop - self.start) * 1000))
+        if not self.stop:
+            self.pause()
+        print("Milliseconds elapsed for segment " + str(self.name) + ": " + str(self.elapsed * 1000))
+
+
+# Method for measuring execution time
+def measure(function, *args):
+    assert isinstance(function, types.FunctionType)
+
+    timer = Timer(function.__name__)
+    timer.go()
+    result = function(args)
+    timer.print()
+    return result

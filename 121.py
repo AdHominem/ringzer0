@@ -4,7 +4,7 @@ from timer import Timer
 from parser import Parser
 import converter
 
-parser = Parser(14)
+parser = Parser(121)
 parser.set_cookie('kbiourgl1oi6tdun0dbkeq3mb5')
 parser.connect()
 parser.toggle_debug()
@@ -15,8 +15,7 @@ sendtime = Timer("sending")
 
 parsetime.go()
 messages = parser.get_messages()
-message = messages[0]
-message = converter.binary_string_to_ascii(message)
+shellcode = messages[0]
 parsetime.pause()
 
 hashtime.go()

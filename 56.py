@@ -15,18 +15,18 @@ messages = parser.get_messages()
 message = messages[0]
 
 solution = None
-crack.start_timer()
+crack.go()
 for number in range(1000, 9999):
     cipher = hashlib.sha1()
     cipher.update(str(number).encode())
     if binascii.hexlify(cipher.digest()).decode() == message:
         print("Number: " + str(number))
         solution = str(number)
-crack.stop_timer()
+crack.pause()
 
-sendtime.start_timer()
+sendtime.go()
 parser.send_solution(solution)
-sendtime.stop_timer()
+sendtime.pause()
 
 crack.print()
 sendtime.print()

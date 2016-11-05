@@ -18,7 +18,7 @@ parser.toggle_debug()
 messages = parser.get_messages()
 hash_value = messages[0]
 
-crack.start_timer()
+crack.go()
 generator = itertools.product(string.ascii_lowercase + '0123456789', repeat=6)
 
 attempt = None
@@ -32,11 +32,11 @@ while True:
             break
     except StopIteration:
         exit("Value not in this generator")
-crack.stop_timer()
+crack.pause()
 
-sendtime.start_timer()
+sendtime.go()
 parser.send_solution(attempt)
-sendtime.stop_timer()
+sendtime.pause()
 
 crack.print()
 sendtime.print()
