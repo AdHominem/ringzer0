@@ -1,4 +1,5 @@
 from Crypto.Util.strxor import strxor_c
+import binascii
 
 
 LETTER_MAP = {
@@ -136,4 +137,11 @@ def break_single_byte_xor(bytes_data, mode='score'):
         return max(candidates, key=lambda candidate: count_english_words(candidate[1], wordlist))
 
 
+def multi_byte_xor(bytes_data, bytes_key):
+    assert len(bytes_data) > len(bytes_key)
 
+    result = bytearray()
+    for i in range(len(bytes_data)):
+        result.append(bytes_data[i] ^ bytes_key[i % len(bytes_key)])
+
+    return bytes(result)
