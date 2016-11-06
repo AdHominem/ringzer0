@@ -25,6 +25,12 @@ def integer_to_bytes_array(i):
     return binascii.unhexlify(hex_string.zfill(n + (n & 1)))
 
 
+def string_to_raw_hex(message):
+    message_as_bytes = message.encode()
+    bytes_as_hex = binascii.hexlify(message_as_bytes)
+    return bytes_as_hex
+
+
 # (str or bytes) -> bytes
 # First we need to interpret the data as hexadecimal
 # If we skip this step, the bytes will be encoded separately!
