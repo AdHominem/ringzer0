@@ -1,7 +1,14 @@
 from Crypto.Util.strxor import strxor
-from converter import *
+from binascii import *
 
-message = '1c0111001f010100061a024b53535009181c'
-key = '686974207468652062756c6c277320657965'
+hex_message = b'1c0111001f010100061a024b53535009181c'
+hex_key = b'686974207468652062756c6c277320657965'
 
-print(binascii.hexlify(strxor(hex_string_to_bytes(message), hex_string_to_bytes(key))))
+binary_message = unhexlify(hex_message)
+binary_key = unhexlify(hex_key)
+
+cipher_text = strxor(binary_message, binary_key)
+
+cipher_text_as_hex = hexlify(cipher_text)
+
+print(cipher_text_as_hex)

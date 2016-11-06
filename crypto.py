@@ -115,8 +115,8 @@ def count_english_words(message, wordlist):
 
 def calculate_score(s):
     score = 0
-    for i in s:
-        c = chr(i).upper()
+    for byte in s:
+        c = chr(byte).upper()
         if c in LETTER_MAP:
             score += LETTER_MAP[c]
     return score
@@ -133,7 +133,7 @@ def break_single_byte_xor(bytes_data, mode='score'):
     elif mode == 'words':
         with open('/usr/share/dict/american-english') as file:
             wordlist = file.read()
-        return max(candidates, key=lambda x: count_english_words(x[1], wordlist))
+        return max(candidates, key=lambda candidate: count_english_words(candidate[1], wordlist))
 
 
 
