@@ -49,11 +49,9 @@ class RainbowTable:
 
 
 def xor(message, key):
-    assert len(message) == len(key)
-
+    key_as_integer = int.from_bytes(key, byteorder='big') if type(key) == bytearray else int(key, 16)
     message_as_integer = int(message, 16)
-    key_as_integer = int(key, 16)
     result = message_as_integer ^ key_as_integer
     # Technically it would be okay just to return the hex() value of result, but we want a byte array
-    result_as_bytes = result.to_bytes(18, byteorder='big')
+    result_as_bytes = result.to_bytes(len(key), byteorder='big')
     return binascii.hexlify(result_as_bytes)
