@@ -1,111 +1,139 @@
-import hashlib
-from itertools import product
-import binascii
-import string
-import converter
+from Crypto.Util.strxor import strxor_c
 
 
-# Precomputes hashes and ciphers for cracking
-class RainbowTable:
-    def __init__(self):
-        self.cipher = None
-        self.alphabet = None
-        self.length = None
+LETTER_MAP = {
+    ' ': 18.74,
+    'E': 9.60,
+    'T': 7.02,
+    'A': 6.21,
+    'O': 5.84,
+    'I': 5.22,
+    'N': 5.21,
+    'H': 4.87,
+    'S': 4.77,
+    'R': 4.43,
+    'D': 3.52,
+    'L': 3.20,
+    'U': 2.25,
+    'M': 1.94,
+    'C': 1.88,
+    'W': 1.82,
+    'G': 1.66,
+    'F': 1.62,
+    'Y': 1.56,
+    'P': 1.31,
+    ',': 1.24,
+    '.': 1.21,
+    'B': 1.19,
+    'K': 0.74,
+    'V': 0.71,
+    '"': 0.67,
+    '\'': 0.44,
+    '-': 0.26,
+    '?': 0.12,
+    'X': 0.12,
+    'J': 0.12,
+    ';': 0.08,
+    '!': 0.08,
+    'Q': 0.07,
+    'Z': 0.07,
+    ':': 0.03,
+    '1': 0.02,
+    '0': 0.01,
+    ')': 0.01,
+    '*': 0.01,
+    '(': 0.01,
+    '2': 0.01,
+    '`': 0.01,
+    '3': 0.01,
+    '9': 0.01,
+    '5': 0.01,
+    '4': 0.01,
+    '8': 0.00,
+    '7': 0.00,
+    '6': 0.00,
+    '/': 0.00,
+    '_': 0.00,
+    '[': 0.00,
+    '»': 0.00,
+    ']': 0.00,
+    '«': 0.00,
+    '=': 0.00,
+    '´': 0.00,
+    '>': 0.00,
+    '~': 0.00,
+    '<': 0.00,
+    '#': 0.00,
+    '·': 0.00,
+    '&': 0.00,
+    '{': 0.00,
+    '}': 0.00,
+    '^': 0.00,
+    '|': 0.00,
+    '\\': 0.00,
+    '@': 0.00,
+    '%': 0.00,
+    '$': 0.00,
+    'Ñ': 0.00
+}
 
-    def set_cipher(self, cipher):
-        assert type(cipher) == str
 
-        self.cipher = cipher
-        print("Cipher set to " + self.cipher)
+def calculate_deviation(message):
+    result = 0.0
+    message = message.upper()
+    #print("chekcing " + binascii.unhexlify(message).decode())
 
-    def set_alphabet(self, alphabet):
-        assert type(alphabet) == str
+    # Loop over all chars and check their frequency in the message
+    for letter, frequency in LETTER_MAP.items():
+        count_in_message = message.count(ord(letter))
 
-        self.alphabet = alphabet
+        frequency_in_message = float(count_in_message) / len(message) * 100.0
 
-    def set_length(self, length):
-        assert type(length) == int and length > 0
+        # The difference between statistical and measured frequency should be 0 ideally
+        # In the worst case it completely differs
+        deviation = abs(frequency_in_message - frequency)
+        result += deviation
+        #print("There are %d %c's in the message, that is %.f%% compared to expected %.2f%%, deviation = %f" % (count_in_message, letter, frequency_in_message, frequency, deviation))
 
-        self.length = length
-
-    def get_permutations(self):
-        assert self.alphabet and self.length
-
-        print("Calculating %d^%d = %d permutations" % (
-        self.length, len(self.alphabet), pow(self.length, len(self.alphabet))))
-        return [''.join(i) for i in product(self.alphabet, repeat=self.length)]
-
-    def get_table(self):
-        assert self.cipher and self.alphabet and self.length
-
-        return {self.use_cipher(word): word for word in self.get_permutations()}
-
-    def use_cipher(self, data):
-        assert type(data) == str and self.cipher
-
-        cipher = None
-        if self.cipher == 'sha1':
-            cipher = hashlib.sha1()
-
-        cipher.update(data.encode())
-        return binascii.hexlify(cipher.digest()).decode()
+    return result
 
 
-#############################################
-# This class assumes you are working with RAW BYTES!
-# Make sure that any input is binary data
-# Either use literal bytes (b'abcdef')
-# Or use the converter class string_to_raw_hex()
-#############################################
-
-
-def xor(message, key):
+def count_english_words(message, wordlist):
     assert type(message) == bytes
-    assert type(key) == bytearray or type(key) == bytes
 
-    key_as_integer = int.from_bytes(key, byteorder='big') if type(key) == bytearray else int(key, 16)
-    message_as_integer = int(message, 16)
-    result = message_as_integer ^ key_as_integer
+    result = 0
 
-    # Technically it would be okay just to return the hex() value of result, but we want bytes
-    # The resulting byte array will have a length of the key if key was a byte array
-    # If key is bytes, then it will be half that key's length (one byte has a length of 2!)
-    result_length = len(key) if type(key) == bytearray else len(key) // 2
-
-    result_as_bytes = result.to_bytes(result_length, byteorder='big')
-    bytes_as_hex = binascii.hexlify(result_as_bytes)
-    return bytes_as_hex
-
-
-def xor_single_byte(message, byte):
-    assert type(message) == bytes
-
-    key = generate_keystream_for_(message, byte)
-    return xor(message, key)
-
-
-# The bytestream will have half the length of the message because each byte has a length of 2
-def generate_keystream_for_(message, byte):
-    assert type(message) == bytes
-    return bytearray([byte] * (len(message) // 2))
-
-
-# This works on raw bytes!
-def is_english_sentence(message):
-    # If the string is not utf-8, discard it
     try:
-        plaintext_interpreted = binascii.unhexlify(message).decode()
+        words = message.decode().lower().split(' ')
+        for word in words:
+            result += 1 if wordlist.find(word) != -1 else -1
     except UnicodeDecodeError:
-        return False
+        pass
 
-    # If it contains non printable chars or no blank space, discard it
-    return all(ord(c) < 127 and c in string.printable for c in plaintext_interpreted) \
-           and plaintext_interpreted.find(' ') != -1
+    return result
 
 
-def crack_single_byte_xor(message):
-    for i in range(256):
-        plaintext = xor_single_byte(message, i)
+def calculate_score(s):
+    score = 0
+    for i in s:
+        c = chr(i).upper()
+        if c in LETTER_MAP:
+            score += LETTER_MAP[c]
+    return score
 
-        if is_english_sentence(plaintext):
-            print("Key %d: Plaintext: %s" % (i, binascii.unhexlify(plaintext).decode()))
+
+def break_single_byte_xor(bytes_data, mode='score'):
+
+    candidates = [(key, strxor_c(bytes_data, key)) for key in range(256)]
+
+    if mode == 'score':
+        return max(candidates, key=lambda x: calculate_score(x[1]))
+    elif mode == 'deviation':
+        return min(candidates, key=lambda x: calculate_deviation(x[1]))
+    elif mode == 'words':
+        with open('/usr/share/dict/american-english') as file:
+            wordlist = file.read()
+        return max(candidates, key=lambda x: count_english_words(x[1], wordlist))
+
+
+

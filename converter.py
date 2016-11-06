@@ -31,6 +31,23 @@ def string_to_raw_hex(message):
     return bytes_as_hex
 
 
+def raw_hex_to_string(message):
+    interpreted = binascii.unhexlify(message)
+    decoded = interpreted.decode(errors='ignore')
+    return decoded
+
+
+def hex_string_to_raw_hex(message):
+    return message.strip().encode()
+
+
+# Turns hex data (either as ascii string or as hex bytes) into bytes
+# '1b37373331363f78151b7f2b783431333d78397828372d363c78373e783a393b3736'
+# -> b'\x1b77316?x\x15\x1b\x7f+x413=x9x(7-6<x7>x:9;76'
+def hex_string_to_bytes(message):
+    return binascii.unhexlify(message.strip())
+
+
 # (str or bytes) -> bytes
 # First we need to interpret the data as hexadecimal
 # If we skip this step, the bytes will be encoded separately!
