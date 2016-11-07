@@ -1,6 +1,4 @@
 from Crypto.Util.strxor import strxor_c
-import binascii
-
 
 LETTER_MAP = {
     ' ': 18.74,
@@ -123,18 +121,24 @@ def calculate_score(s):
     return score
 
 
-def break_single_byte_xor(bytes_data, mode='score'):
+# Determines the quality of a candidate by using the majority of score, deviation and words
+# Words will be the fallback in case all are different
+def break_single_byte_xor(bytes_data):
 
     candidates = [(key, strxor_c(bytes_data, key)) for key in range(256)]
 
-    if mode == 'score':
-        return max(candidates, key=lambda x: calculate_score(x[1]))
-    elif mode == 'deviation':
-        return min(candidates, key=lambda x: calculate_deviation(x[1]))
-    elif mode == 'words':
-        with open('/usr/share/dict/american-english') as file:
-            wordlist = file.read()
-        return max(candidates, key=lambda candidate: count_english_words(candidate[1], wordlist))
+    score = max(candidates, key=lambda x: calculate_score(x[1]))
+    deviation = min(candidates, key=lambda x: calculate_deviation(x[1]))
+    with open('/usr/share/dict/american-english') as file:
+        wordlist = file.read()
+    words = max(candidates, key=lambda candidate: count_english_words(candidate[1], wordlist))
+
+    if score == deviation or score == words:
+        return score
+    elif deviation == words:
+        return deviation
+    else:
+        return words
 
 
 def multi_byte_xor(bytes_data, bytes_key):
