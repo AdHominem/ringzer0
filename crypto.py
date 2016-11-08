@@ -1,4 +1,7 @@
 from Crypto.Util.strxor import strxor_c
+from binascii import *
+from functools import *
+import itertools
 
 LETTER_MAP = {
     ' ': 18.74,
@@ -112,12 +115,16 @@ def count_english_words(message, wordlist):
     return result
 
 
+# Dismisses any string containing non printable chars and gives all valid strings a score
+# based on the frequency of the chars
 def calculate_score(s):
     score = 0
     for byte in s:
         c = chr(byte).upper()
         if c in LETTER_MAP:
             score += LETTER_MAP[c]
+        else:
+            return 0
     return score
 
 
@@ -126,18 +133,22 @@ def calculate_score(s):
 def break_single_byte_xor(bytes_data):
 
     candidates = [(key, strxor_c(bytes_data, key)) for key in range(256)]
+    # overview = [(candidate, calculate_deviation(candidate[1])) for candidate in candidates]
+    # for c, s in overview:
+    #     if s < 150:
+    #         print(c, s)
 
     score = max(candidates, key=lambda x: calculate_score(x[1]))
-    deviation = min(candidates, key=lambda x: calculate_deviation(x[1]))
-
-    if score == deviation:
-        return score
-
-    with open('/usr/share/dict/american-english') as file:
-        wordlist = file.read()
-    words = max(candidates, key=lambda candidate: count_english_words(candidate[1], wordlist))
-
-    return words
+    return score
+    # deviation = min(candidates, key=lambda x: calculate_deviation(x[1]))
+    # if score == deviation:
+    #     return score
+    #
+    # with open('/usr/share/dict/american-english') as file:
+    #     wordlist = file.read()
+    # words = max(candidates, key=lambda candidate: count_english_words(candidate[1], wordlist))
+    #
+    # return words
 
 
 def multi_byte_xor(bytes_data, bytes_key):
@@ -148,3 +159,81 @@ def multi_byte_xor(bytes_data, bytes_key):
         result.append(bytes_data[i] ^ bytes_key[i % len(bytes_key)])
 
     return bytes(result)
+
+
+def break_multi_byte_xor(bytes_data):
+    print("Breaking", hexlify(bytes_data)),
+
+    best_keysize_and_distance = (None, 8)
+
+    # 1. Hamming distance: Try all keysizes up until either 40
+    for keysize in range(2, min(len(bytes_data) // 3, 40) + 1):
+
+        chunks = [bytes_data[j: j + keysize] for j in [i * keysize for i in range(len(bytes_data) // keysize)]]
+        normalized_hamming_distance = get_normalized_hamming_distance(bytes_data, keysize)#hamming_distance(chunks[:2]) / keysize
+
+        if normalized_hamming_distance < best_keysize_and_distance[1]:
+            best_keysize_and_distance = (keysize, normalized_hamming_distance)
+
+    keysize = best_keysize_and_distance[0]
+    print("Keysize is probably", keysize)
+
+    # 2. Split the data in chunks of keysize
+    # If the byte length of the data is not divisible by keysize, this will omit up to keysize - 1 trailing bytes
+    chunks = [bytes_data[j: j + keysize] for j in [i * keysize for i in range(len(bytes_data) // keysize)]]
+    print("Chunks:", [hexlify(i) for i in chunks])
+
+    # 3. Transpose blocks: Take the i-th elements of each chunk and join them as a new byte block which is encrypted
+    # with the same byte
+    blocks = [b''.join([bytes([chunk[i]]) for chunk in chunks]) for i in range(keysize)]
+    print("Blocks:", [hexlify(block) for block in blocks])
+
+    # 4. Break the individual blocks and assemble the key
+    key = b''.join([bytes([break_single_byte_xor(block)[0]]) for block in blocks])
+    print("The key is", key, "and the decrypted message is", multi_byte_xor(bytes_data, key))
+
+
+def hamming_distance(bytes_data):
+    #print([hexlify(byte) for byte in bytes_data])
+
+    result = 0
+    data_as_integers = [int.from_bytes(byte, byteorder='big') for byte in bytes_data]
+    distance = reduce(lambda x, y: x ^ y, data_as_integers)
+    while distance > 0:
+        result += distance % 2
+        #print("Distance:", hex(distance), "Bit:", distance % 2)
+        distance >>= 1
+    return result
+
+
+def get_hamming_distance(s1, s2):
+    distance = 0
+    for c1, c2 in zip(s1, s2):
+        for i in range(8):
+            if (c1 & 1 << i) != (c2 & 1 << i):
+                distance += 1
+
+    return distance
+
+
+def get_normalized_hamming_distance(s, keysize, n=2):
+    slices = [s[keysize*i:keysize*(i+1)] for i in range(n)]
+    pairs = list(itertools.combinations(slices, 2))
+    dist = float(sum([get_hamming_distance(pair[0], pair[1]) for pair in pairs]))/float(len(pairs))
+    return float(dist) / float(keysize)
+
+# message = b'This is a secret message, it is pretty long and hopefully you can decode it'
+# message2 = b'Probably too short'
+# message3 = b'This is a secret message, pretty short'
+# key = b'10'
+# cipher = multi_byte_xor(message2, key)
+# break_multi_byte_xor(cipher)
+
+first = b'\x00\xff\x88'     # 0000 0000  1111 1111  1000 1000
+second = b'\x01\xfe\x87'    # 0000 0001  1111 1110  1000 0111
+third = b'\x8f\x00\x00'    # 1000 1111  0000 0000  0000 0000
+
+t1 = b'this is a test'
+t2 = b'wokka wokka!!!'
+
+print(hamming_distance([first, second, third]))
