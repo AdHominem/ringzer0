@@ -80,6 +80,17 @@ LETTER_MAP = {
 }
 
 
+def caesar_cipher(string, key):
+    assert type(string) == str and type(key) == int
+
+    return ''.join([chr((ord(c) + key - ord('A')) % 26 + ord('A')) if c.isupper()
+                    else chr((ord(c) + key - ord('a')) % 26 + ord('a')) if c.islower()
+                    else c for c in string])
+
+
+
+
+
 def calculate_deviation(message):
     result = 0.0
     message = message.upper()
@@ -126,6 +137,12 @@ def calculate_score(s):
         else:
             return 0
     return score
+
+
+def break_caesar_cipher(string):
+    assert type(string) == str
+
+    return [caesar_cipher(string, key) for key in range(26)]
 
 
 # Determines the quality of a candidate by using the majority of score, deviation and words
@@ -229,11 +246,11 @@ def get_normalized_hamming_distance(s, keysize, n=2):
 # cipher = multi_byte_xor(message2, key)
 # break_multi_byte_xor(cipher)
 
-first = b'\x00\xff\x88'     # 0000 0000  1111 1111  1000 1000
-second = b'\x01\xfe\x87'    # 0000 0001  1111 1110  1000 0111
-third = b'\x8f\x00\x00'    # 1000 1111  0000 0000  0000 0000
-
-t1 = b'this is a test'
-t2 = b'wokka wokka!!!'
-
-print(hamming_distance([first, second, third]))
+# first = b'\x00\xff\x88'     # 0000 0000  1111 1111  1000 1000
+# second = b'\x01\xfe\x87'    # 0000 0001  1111 1110  1000 0111
+# third = b'\x8f\x00\x00'    # 1000 1111  0000 0000  0000 0000
+#
+# t1 = b'this is a test'
+# t2 = b'wokka wokka!!!'
+#
+# print(hamming_distance([first, second, third]))
