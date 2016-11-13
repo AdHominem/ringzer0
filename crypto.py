@@ -112,6 +112,12 @@ def calculate_deviation(message):
 
 
 def count_english_words(message, wordlist):
+    """
+    Powerful, but does not work with transposed blocks, so only use this on reassembled text
+    :param message:
+    :param wordlist:
+    :return:
+    """
     assert type(message) == bytes
 
     result = 0
@@ -119,7 +125,7 @@ def count_english_words(message, wordlist):
     try:
         words = message.decode().lower().split(' ')
         for word in words:
-            result += 1 if wordlist.find(word) != -1 else -1
+            result += 1 if word in wordlist else -1
     except UnicodeDecodeError:
         pass
 
@@ -178,79 +184,104 @@ def multi_byte_xor(bytes_data, bytes_key):
     return bytes(result)
 
 
-def break_multi_byte_xor(bytes_data):
-    print("Breaking", hexlify(bytes_data)),
+def get_possible_key_sizes(binary_data):
+    """
+    The precision for get_normalized_hamming_distance can be max for each given keysize instead of setting it to a
+    fixed value
+    :param binary_data:
+    :return:
+    """
+    best_keysize_and_distance = (1337, 4)
+    possible_keysizes = []
 
-    best_keysize_and_distance = (None, 8)
-
-    # 1. Hamming distance: Try all keysizes up until either 40
-    for keysize in range(2, min(len(bytes_data) // 3, 40) + 1):
-
-        chunks = [bytes_data[j: j + keysize] for j in [i * keysize for i in range(len(bytes_data) // keysize)]]
-        normalized_hamming_distance = get_normalized_hamming_distance(bytes_data, keysize)#hamming_distance(chunks[:2]) / keysize
+    for keysize in range(2, min(len(binary_data) // 2, 41)):
+        normalized_hamming_distance = get_normalized_hamming_distance(binary_data, keysize, len(binary_data) // keysize)
 
         if normalized_hamming_distance < best_keysize_and_distance[1]:
+            #print("Found a new best keysize: %d, %f" % (keysize, normalized_hamming_distance))
+            possible_keysizes.append(keysize)
             best_keysize_and_distance = (keysize, normalized_hamming_distance)
-
-    keysize = best_keysize_and_distance[0]
-    print("Keysize is probably", keysize)
-
-    # 2. Split the data in chunks of keysize
-    # If the byte length of the data is not divisible by keysize, this will omit up to keysize - 1 trailing bytes
-    chunks = [bytes_data[j: j + keysize] for j in [i * keysize for i in range(len(bytes_data) // keysize)]]
-    print("Chunks:", [hexlify(i) for i in chunks])
-
-    # 3. Transpose blocks: Take the i-th elements of each chunk and join them as a new byte block which is encrypted
-    # with the same byte
-    blocks = [b''.join([bytes([chunk[i]]) for chunk in chunks]) for i in range(keysize)]
-    print("Blocks:", [hexlify(block) for block in blocks])
-
-    # 4. Break the individual blocks and assemble the key
-    key = b''.join([bytes([break_single_byte_xor(block)[0]]) for block in blocks])
-    print("The key is", key, "and the decrypted message is", multi_byte_xor(bytes_data, key))
+    return possible_keysizes
 
 
-def hamming_distance(bytes_data):
-    #print([hexlify(byte) for byte in bytes_data])
+def break_multi_byte_xor(binary_data):
+    """
+    1. Hamming distance: Try all keysizes up until either 40 or a quarter of data length (amount of chunks is 4)
+    2. Split the data in chunks of keysize
+        If the byte length of the data is not divisible by keysize, this will omit up to keysize - 1 trailing bytes
+        Starts at [0, keysize], [keysize, 2 * keysize], [2 * keysize, 3 * keysize], etc...
+    3. Transpose blocks: Take the i-th elements of each chunk and join them as a new byte block which is encrypted
+            with the same byte
+    4. Break the individual blocks and assemble the key
+    :param binary_data:
+    :return:
+    """
+    print("Breaking", hexlify(binary_data)),
 
-    result = 0
-    data_as_integers = [int.from_bytes(byte, byteorder='big') for byte in bytes_data]
-    distance = reduce(lambda x, y: x ^ y, data_as_integers)
-    while distance > 0:
-        result += distance % 2
-        #print("Distance:", hex(distance), "Bit:", distance % 2)
-        distance >>= 1
-    return result
+    possible_keysizes = get_possible_key_sizes(binary_data)
+    print("Possible keysizes:", possible_keysizes)
+
+    word_counts_keys_messages = []
+    with open('/usr/share/dict/american-english') as file:
+        wordlist = [word.strip() for word in file.readlines() if len(word) >= 2]
+        for keysize in possible_keysizes:
+            number_of_chunks = len(binary_data) // keysize
+
+            chunks = [binary_data[i * keysize: (i + 1) * keysize] for i in range(number_of_chunks)]
+            #print("Chunks:", [hexlify(i) for i in chunks])
+
+            blocks = [b''.join([bytes([chunk[i]]) for chunk in chunks]) for i in range(keysize)]
+            #print("Blocks:", [hexlify(block) for block in blocks])
+
+            key = b''.join([bytes([break_single_byte_xor(block)[0]]) for block in blocks])
+
+            plaintext = multi_byte_xor(binary_data, key)
+            #print("For keysize", keysize, ", the key is", key, "and the decrypted message is", plaintext)
+            words = count_english_words(plaintext, wordlist)
+            word_counts_keys_messages.append((words, key, plaintext))
+
+    return max(word_counts_keys_messages, key=lambda element: element[0])
 
 
-def get_hamming_distance(s1, s2):
+def get_hamming_distance(first, second):
+    """
+    Calculates the hamming distance by looping over all bytes in both strings
+    For each of the 8 bit, applies a bit mask and checks if the bits at position i are the same
+    If not, increases distance
+    :param first: First byte string
+    :param second: Second byte string
+    :return: The hamming distance between both
+    """
+    assert len(first) == len(second)
     distance = 0
-    for c1, c2 in zip(s1, s2):
+    for first_byte, second_byte in zip(first, second):
         for i in range(8):
-            if (c1 & 1 << i) != (c2 & 1 << i):
+            if (first_byte & 1 << i) != (second_byte & 1 << i):
                 distance += 1
 
     return distance
 
 
-def get_normalized_hamming_distance(s, keysize, n=2):
-    slices = [s[keysize*i:keysize*(i+1)] for i in range(n)]
-    pairs = list(itertools.combinations(slices, 2))
-    dist = float(sum([get_hamming_distance(pair[0], pair[1]) for pair in pairs]))/float(len(pairs))
-    return float(dist) / float(keysize)
+def get_normalized_hamming_distance(binary_data, keysize, number_of_chunks=4):
+    """
+    Calculates the normalized hamming distance, that is the average hamming distance per byte.
+    A byte string can for a given keysize be separated in chunks of bytes of length keysize
+    The average hamming distance between all chunks is calculated and normalized by dividing by keysize
+    :param binary_data: A byte string
+    :param keysize: The size of the key
+    :param number_of_chunks: The number of chunks, this value depends on the keysize so it has to be static.
+    Increasing this value increases the precision, its max value is (|string| / keysize)
+    :return: The average hamming distance per byte for the given keysize
+    """
 
-# message = b'This is a secret message, it is pretty long and hopefully you can decode it'
-# message2 = b'Probably too short'
-# message3 = b'This is a secret message, pretty short'
-# key = b'10'
-# cipher = multi_byte_xor(message2, key)
-# break_multi_byte_xor(cipher)
+    # Starts at [0, keysize], [keysize, 2 * keysize], [2 * keysize, 3 * keysize], etc...
+    chunks = [binary_data[i * keysize: (i + 1) * keysize] for i in range(number_of_chunks)]
 
-# first = b'\x00\xff\x88'     # 0000 0000  1111 1111  1000 1000
-# second = b'\x01\xfe\x87'    # 0000 0001  1111 1110  1000 0111
-# third = b'\x8f\x00\x00'    # 1000 1111  0000 0000  0000 0000
-#
-# t1 = b'this is a test'
-# t2 = b'wokka wokka!!!'
-#
-# print(hamming_distance([first, second, third]))
+    # To normalize the hamming distance, we compare all chunks with each other
+    pairs = list(itertools.combinations(chunks, 2))
+
+    # Calculate the average hamming distance between each pair
+    dist = sum([get_hamming_distance(pair[0], pair[1]) for pair in pairs]) / len(pairs)
+
+    # To get the hamming distance per byte, we need to divide by the keysize
+    return dist / keysize
