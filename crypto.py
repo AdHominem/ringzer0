@@ -285,3 +285,43 @@ def get_normalized_hamming_distance(binary_data, keysize, number_of_chunks=4):
 
     # To get the hamming distance per byte, we need to divide by the keysize
     return dist / keysize
+
+
+# ECC
+
+def ec_addition(x1, y1, x2, y2, p):
+    assert x1 != x2 or y1 != y2
+
+    s = (y2 - y1) * brute_force_inverse(x2 - x1, p) % p
+    x3 = (pow(s, 2) - x1 - x2) % p
+    return x3, (s * (x1 - x3) - y1) % p
+
+
+def ec_double(x, y, p, a):
+    s = (3 * pow(x, 2) + a) * brute_force_inverse(2 * y, p) % p
+    new_x = (pow(s, 2) - 2 * x) % p
+    return new_x, (s * (x - new_x) - y) % p
+
+
+def brute_force_inverse(number, group):
+    factor = 1
+    while (number * factor) % group != 1:
+        factor += 1
+    return factor
+
+
+def calculate_points(a, p, x1, y1, x2, y2, recursion=2):
+    if x1 == x2 and y2 == p - y1:
+        print(recursion, "P = O")
+        return
+    if x1 == x2 and y1 == y2:
+        x3, y3 = ec_double(x1, y1, p, a)
+    else:
+        x3, y3 = ec_addition(x1, y1, x2, y2, p)
+    print(recursion, "P =", (x3, y3))
+    return calculate_points(a, p, x1, y1, x3, y3, recursion + 1)
+
+
+
+
+
