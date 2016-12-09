@@ -1,11 +1,7 @@
-from Crypto.Util.strxor import strxor_c
-from binascii import *
-from functools import *
 import itertools
-from converter import *
-from timer import measure
 import math
-from multiprocessing import Pool
+from Crypto.Util.strxor import strxor_c
+from converter import *
 
 LETTER_MAP = {
     ' ': 10.74,
