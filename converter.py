@@ -55,3 +55,15 @@ def hex_to_base64(hex_data):
     interpreted = binascii.unhexlify(hex_data)
     return base64.b64encode(interpreted)
 
+
+def integer_tuple_to_binary_string(tuple):
+    return b''.join(bytes([i]) for i in tuple)
+
+
+def tuple_to_binary_string(tuple):
+    """
+    Can also handle bytes occurring in the tuple
+    :param tuple:
+    :return:
+    """
+    return b''.join(bytes([i]) if type(i) == int else i for i in tuple)

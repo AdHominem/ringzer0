@@ -2,9 +2,10 @@ from Crypto.Util.strxor import strxor_c
 from binascii import *
 from functools import *
 import itertools
+from converter import *
 
 LETTER_MAP = {
-    ' ': 18.74,
+    ' ': 10.74,
     'E': 9.60,
     'T': 7.02,
     'A': 6.21,
@@ -76,7 +77,8 @@ LETTER_MAP = {
     '@': 0.00,
     '%': 0.00,
     '$': 0.00,
-    'Ñ': 0.00
+    'Ñ': 0.00,
+    '\x00': 0.00    #This one is included since there will be a null byte padding in the transpose() function
 }
 
 
@@ -141,6 +143,7 @@ def calculate_score(s):
         if c in LETTER_MAP:
             score += LETTER_MAP[c]
         else:
+            # If ANY non-listed char is encountered, break.
             return 0
     return score
 
@@ -154,12 +157,17 @@ def break_caesar_cipher(string):
 # Determines the quality of a candidate by using the majority of score, deviation and words
 # Words will be the fallback in case all are different
 def break_single_byte_xor(bytes_data):
+    print("-------------------------------")
 
     candidates = [(key, strxor_c(bytes_data, key)) for key in range(256)]
     # overview = [(candidate, calculate_deviation(candidate[1])) for candidate in candidates]
     # for c, s in overview:
     #     if s < 150:
     #         print(c, s)
+    for candidate in candidates:
+        score = calculate_score(candidate[1])
+        if score > 20:
+            print(score, candidate[1], candidate[0])
 
     score = max(candidates, key=lambda x: calculate_score(x[1]))
     return score
@@ -216,31 +224,42 @@ def break_multi_byte_xor(binary_data):
     :param binary_data:
     :return:
     """
-    print("Breaking", hexlify(binary_data)),
+    possible_key_sizes = get_possible_key_sizes(binary_data)
 
-    possible_keysizes = get_possible_key_sizes(binary_data)
-    print("Possible keysizes:", possible_keysizes)
+    print("\nPossible key sizes based on hamming distance: ", end="")
+    print(possible_key_sizes)
 
-    word_counts_keys_messages = []
-    with open('/usr/share/dict/american-english') as file:
-        wordlist = [word.strip() for word in file.readlines() if len(word) >= 2]
-        for keysize in possible_keysizes:
-            number_of_chunks = len(binary_data) // keysize
+    plaintexts = {}
+    for keysize in possible_key_sizes[4:]:
+        transposed = transpose(binary_data, keysize)
+        print("\nTransposed cipher with block length of %d: " % keysize, end="")
+        print(transposed)
 
-            chunks = [binary_data[i * keysize: (i + 1) * keysize] for i in range(number_of_chunks)]
-            #print("Chunks:", [hexlify(i) for i in chunks])
+        tuples = [break_single_byte_xor(block) for block in transposed]
+        key = bytes(bytearray([tuple[0] for tuple in tuples]))
+        print("The key for a keysize of %d is: " % keysize, end="")
+        print(key)
 
-            blocks = [b''.join([bytes([chunk[i]]) for chunk in chunks]) for i in range(keysize)]
-            #print("Blocks:", [hexlify(block) for block in blocks])
+        plaintext = multi_byte_xor(binary_data, key)
+        plaintexts[key] = plaintext
 
-            key = b''.join([bytes([break_single_byte_xor(block)[0]]) for block in blocks])
+    for key in plaintexts:
+        #score = calculate_score(plaintexts[key])
+        print(key, plaintexts[key])
 
-            plaintext = multi_byte_xor(binary_data, key)
-            #print("For keysize", keysize, ", the key is", key, "and the decrypted message is", plaintext)
-            words = count_english_words(plaintext, wordlist)
-            word_counts_keys_messages.append((words, key, plaintext))
 
-    return max(word_counts_keys_messages, key=lambda element: element[0])
+def transpose(binary_data, length):
+    """
+    Get a string and break it up into 'length' strings, where each string i is
+    composed of every i-1th character.
+    """
+    chunks = [binary_data[i:i + length] for i in range(0, len(binary_data), length)]
+    #print([hexlify(chunk) for chunk in chunks])
+
+    transposed = itertools.zip_longest(*chunks, fillvalue=b'\x00')
+    result = [tuple_to_binary_string(tuple) for tuple in transposed]
+
+    return result
 
 
 def get_hamming_distance(first, second):
