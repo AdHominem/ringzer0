@@ -21,7 +21,20 @@ class Timer:
     def print(self):
         if not self.stop:
             self.pause()
-        print("Milliseconds elapsed for segment " + str(self.name) + ": " + str(self.elapsed * 1000))
+        result = self.elapsed
+        unit = "seconds"
+
+        if result < 1:
+            unit = "milliseconds"
+            result *= 1000
+        if result < 1:
+            unit = "microseconds"
+            result *= 1000
+        if result < 1:
+            unit = "nanoseconds"
+            result *= 1000
+
+        print(unit, " elapsed for segment " + str(self.name) + ": " + str(result))
 
 
 # Method for measuring execution time
@@ -30,6 +43,6 @@ def measure(function, *args):
 
     timer = Timer(function.__name__)
     timer.go()
-    result = function(args)
+    result = function(*args)
     timer.print()
     return result

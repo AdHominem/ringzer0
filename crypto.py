@@ -3,6 +3,9 @@ from binascii import *
 from functools import *
 import itertools
 from converter import *
+from timer import measure
+import math
+from multiprocessing import Pool
 
 LETTER_MAP = {
     ' ': 10.74,
@@ -306,7 +309,31 @@ def get_normalized_hamming_distance(binary_data, keysize, number_of_chunks=4):
     return dist / keysize
 
 
+# Math
+
+
+def gcd(first, second):
+    bigger = first if first > second else second
+    smaller = first if first < second else second
+    return bigger if smaller == 0 else gcd(smaller, bigger % smaller)
+
+
+def is_prime(number):
+    """
+    Checks if a number is prime based on division tests
+    Time complexity is O(sqrt(n))
+    :param number: The number to test
+    :return: True if the number is prime, else false
+    """
+    if math.ceil(math.sqrt(number)) >= 319380651:
+        print("Warning! This might need more than half a minute!")
+    for i in range(2, math.ceil(math.sqrt(number))):
+        if number % i == 0:
+            return False
+    return True
+
 # ECC
+
 
 def ec_addition(x1, y1, x2, y2, p):
     assert x1 != x2 or y1 != y2
