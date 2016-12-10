@@ -329,6 +329,18 @@ def is_prime(number):
     return True
 
 
+def phi(number):
+    if is_prime(number):
+        return number - 1
+
+    result = 0
+    for i in range(number):
+        if gcd(i, number) == 1:
+            result += 1
+
+    return result
+
+
 # a is the modulus
 # returns (gcd, x, y), where y is the inverse of b
 def eea(a, b):
@@ -344,33 +356,25 @@ def eea(a, b):
         return gcd, y - quotient * x, x
 
 
-def inverse(number, modulo):
-    result = eea(modulo, number)
+def inverse(number, modulus):
+    result = eea(modulus, number)
     if result[0] != 1:
         raise ValueError('There is no inverse if the number is not coprime to the modulus')
     else:
-        return result[2]
+        return result[2] if result[2] > 0 else result[2] + modulus
 
 
-def crt(tuples):
-    """
-    Takes equations as a list of tuples
-    for each equation (r, m) set a coefficient c
-    loop over all other equations (r2, m2)
-    multiply c times m2
-    multiply r times c times the inverse of c
-    add r to the result
-    :return:
-    """
+def crt(moduli, numbers):
+    product_of_moduli = 1
     result = 0
-    for r, m in tuples:
-        c = 1
-        for r2, m2 in [tuple for tuple in tuples if tuple[0] != r and tuple[1] != m]:
-            c *= m2
-        r = r * c * inverse(c, m)
-        result += r
+    for i in range(len(numbers)):
+        product_of_moduli *= moduli[i]
 
-    return result
+    for i in range(len(numbers)):
+        p = product_of_moduli // moduli[i]
+        result += numbers[i] * inverse(p, moduli[i]) * p
+    return result % product_of_moduli
+
 
 # ECC
 
