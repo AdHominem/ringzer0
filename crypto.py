@@ -1,6 +1,8 @@
 import itertools
 import math
-from Crypto.Util.strxor import strxor_c
+import random
+import cmath
+#from Crypto.Util.strxor import strxor_c
 from converter import *
 
 LETTER_MAP = {
@@ -89,9 +91,6 @@ def caesar_cipher(string, key):
                     else c for c in string])
 
 
-
-
-
 def calculate_deviation(message):
     result = 0.0
     message = message.upper()
@@ -156,29 +155,30 @@ def break_caesar_cipher(string):
 # Determines the quality of a candidate by using the majority of score, deviation and words
 # Words will be the fallback in case all are different
 def break_single_byte_xor(bytes_data):
-    print("-------------------------------")
-
-    candidates = [(key, strxor_c(bytes_data, key)) for key in range(256)]
-    # overview = [(candidate, calculate_deviation(candidate[1])) for candidate in candidates]
-    # for c, s in overview:
-    #     if s < 150:
-    #         print(c, s)
-    for candidate in candidates:
-        score = calculate_score(candidate[1])
-        if score > 20:
-            print(score, candidate[1], candidate[0])
-
-    score = max(candidates, key=lambda x: calculate_score(x[1]))
-    return score
-    # deviation = min(candidates, key=lambda x: calculate_deviation(x[1]))
-    # if score == deviation:
-    #     return score
+    return 0
+    # print("-------------------------------")
     #
-    # with open('/usr/share/dict/american-english') as file:
-    #     wordlist = file.read()
-    # words = max(candidates, key=lambda candidate: count_english_words(candidate[1], wordlist))
+    # candidates = [(key, strxor_c(bytes_data, key)) for key in range(256)]
+    # # overview = [(candidate, calculate_deviation(candidate[1])) for candidate in candidates]
+    # # for c, s in overview:
+    # #     if s < 150:
+    # #         print(c, s)
+    # for candidate in candidates:
+    #     score = calculate_score(candidate[1])
+    #     if score > 20:
+    #         print(score, candidate[1], candidate[0])
     #
-    # return words
+    # score = max(candidates, key=lambda x: calculate_score(x[1]))
+    # return score
+    # # deviation = min(candidates, key=lambda x: calculate_deviation(x[1]))
+    # # if score == deviation:
+    # #     return score
+    # #
+    # # with open('/usr/share/dict/american-english') as file:
+    # #     wordlist = file.read()
+    # # words = max(candidates, key=lambda candidate: count_english_words(candidate[1], wordlist))
+    # #
+    # # return words
 
 
 def multi_byte_xor(bytes_data, bytes_key):
@@ -314,19 +314,67 @@ def gcd(first, second):
     return bigger if smaller == 0 else gcd(smaller, bigger % smaller)
 
 
-def is_prime(number):
-    """
-    Checks if a number is prime based on division tests
-    Time complexity is O(sqrt(n))
-    :param number: The number to test
-    :return: True if the number is prime, else false
-    """
-    if math.ceil(math.sqrt(number)) >= 319380651:
-        print("Warning! This might need more than half a minute!")
-    for i in range(2, math.ceil(math.sqrt(number))):
-        if number % i == 0:
+# Uses the decomposition theorem of an odd prime candidate number
+# For a given integer a, tries to determine if number is composite
+def is_composite(a, odd_part, number, exponent):
+    if pow(a, odd_part, number) == 1:
+        return False
+    for i in range(exponent):
+        if pow(a, 2**i * odd_part, number) == number-1:
             return False
     return True
+
+
+# Miller Rabin
+# Extends the decomposition theorem to a number of a's.
+# All necessary as are checked to determine if number is composite
+# If none, the number is probably prime
+def is_prime(number, security_parameter = 11):
+    assert security_parameter > 0
+
+    if number in (0, 1):
+        return True
+
+    odd_part = number - 1
+    exponent = 0
+    while not odd_part % 2:
+        odd_part >>= 1
+        exponent += 1
+
+    if number < 1373653:
+        return not any(is_composite(a, odd_part, number, exponent) for a in (2, 3))
+    if number < 25326001:
+        return not any(is_composite(a, odd_part, number, exponent) for a in (2, 3, 5))
+    if number < 118670087467:
+        if number == 3215031751:
+            return False
+        return not any(is_composite(a, odd_part, number, exponent) for a in (2, 3, 5, 7))
+    if number < 2152302898747:
+        return not any(is_composite(a, odd_part, number, exponent) for a in (2, 3, 5, 7, 11))
+    if number < 3474749660383:
+        return not any(is_composite(a, odd_part, number, exponent) for a in (2, 3, 5, 7, 11, 13))
+    if number < 341550071728321:
+        return not any(is_composite(a, odd_part, number, exponent) for a in (2, 3, 5, 7, 11, 13, 17))
+    if number < 3825123056546413051:
+        return not any(is_composite(a, odd_part, number, exponent) for a in (2, 3, 5, 7, 11, 13, 17, 19, 23))
+    if number < 318665857834031151167461:
+        return not any(is_composite(a, odd_part, number, exponent) for a in (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37))
+    if number < 3317044064679887385961981:
+        return not any(is_composite(a, odd_part, number, exponent) for a in (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41))
+
+    for i in range(security_parameter):
+        a = random.randint(2, number - 2)
+        if is_composite(a, odd_part, number, exponent):
+            return False
+    return True
+
+
+# Generates a random prime of at least limit size
+def generate_prime(limit):
+    step = limit // 100
+    while not is_prime(limit):
+        limit += random.randint(1, step)
+    return limit
 
 
 def phi(number):
@@ -412,6 +460,79 @@ def calculate_points(a, p, x1, y1, x2, y2, recursion=2):
     return calculate_points(a, p, x1, y1, x3, y3, recursion + 1)
 
 
+# RSA
 
 
+class RSA:
+    def __init__(self, p, q):
+        assert is_prime(p)
+        assert is_prime(q)
 
+        self.p = p
+        self.q = q
+        self.n = p * q
+        self.m = (p-1) * (q-1)
+
+        print(self.n, self.m)
+
+        # Preferably use 3, 17 or 2^16 + 1
+        if gcd(self.m, 3) == 1:
+                self.e = 3
+        elif gcd(self.m, 17) == 1:
+                self.e = 17
+        elif gcd(self.m, 2**16 + 1) == 1:
+                self.e = 2**16 + 1
+        else:
+            for e in range(2, self.m):
+                if gcd(self.m, e) == 1:
+                    self.e = e
+                    break
+
+        print(self.e)
+        self.d = inverse(self.e, self.m)
+        print(self.d)
+
+    def encrypt(self, plaintext):
+        """
+        Encrypts a byte string using the RSA parameters
+        :param plaintext: The string to encrypt
+        :return: An encrypted string as bytes
+        """
+        assert type(plaintext) == bytes
+        bitlength_n = math.ceil(math.log2(self.n))
+        message = int.from_bytes(plaintext, byteorder="big")
+        bitlength_message = math.ceil(math.log2(message))
+
+        try:
+            assert bitlength_message <= bitlength_n
+        except AssertionError:
+            print("Error! You can not encrypt a %d bit message with a %d bit modulus!" % (bitlength_message, bitlength_n))
+            exit(1)
+
+        cipher = pow(message, self.d, self.n)
+        return int.to_bytes(cipher, byteorder="big", length=math.ceil(math.log(cipher, 2**8)))
+
+    def decrypt(self, ciphertext):
+        """
+        Encrypts a byte string using the RSA parameters
+        :param ciphertext: The string to encrypt
+        :return: An encrypted string as bytes
+        """
+        assert type(ciphertext) == bytes
+
+        message = int.from_bytes(ciphertext, byteorder="big")
+        plaintext = pow(message, self.e, self.n)
+        return int.to_bytes(plaintext, byteorder="big", length=math.ceil(math.log(plaintext, 2**8)))
+
+
+p = generate_prime(2**512)
+q = generate_prime(2**512)
+print(p)
+print(q)
+
+rsa = RSA(p, q)
+cipher = rsa.encrypt(b"Hello World, how are you today?")
+print(cipher)
+
+decrypted = rsa.decrypt(cipher)
+print(decrypted)
