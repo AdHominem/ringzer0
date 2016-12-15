@@ -4,6 +4,7 @@ import random
 import cmath
 #from Crypto.Util.strxor import strxor_c
 from converter import *
+from timer import measure
 
 LETTER_MAP = {
     ' ': 10.74,
@@ -371,9 +372,12 @@ def is_prime(number, security_parameter = 11):
 
 # Generates a random prime of at least limit size
 def generate_prime(limit):
-    step = limit // 100
+    # Make sure the limit is odd
+    if limit % 2 == 0:
+        limit += 1
+
     while not is_prime(limit):
-        limit += random.randint(1, step)
+        limit += 2
     return limit
 
 
@@ -525,8 +529,8 @@ class RSA:
         return int.to_bytes(plaintext, byteorder="big", length=math.ceil(math.log(plaintext, 2**8)))
 
 
-p = generate_prime(2**512)
-q = generate_prime(2**512)
+p = measure(generate_prime, 2**random.randint(1024, 1064))
+q = measure(generate_prime, 2**random.randint(1024, 1064))
 print(p)
 print(q)
 
