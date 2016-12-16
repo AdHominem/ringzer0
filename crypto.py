@@ -1,87 +1,9 @@
 import itertools
 import math
 import random
-import cmath
 #from Crypto.Util.strxor import strxor_c
 from converter import *
 from timer import measure
-
-LETTER_MAP = {
-    ' ': 10.74,
-    'E': 9.60,
-    'T': 7.02,
-    'A': 6.21,
-    'O': 5.84,
-    'I': 5.22,
-    'N': 5.21,
-    'H': 4.87,
-    'S': 4.77,
-    'R': 4.43,
-    'D': 3.52,
-    'L': 3.20,
-    'U': 2.25,
-    'M': 1.94,
-    'C': 1.88,
-    'W': 1.82,
-    'G': 1.66,
-    'F': 1.62,
-    'Y': 1.56,
-    'P': 1.31,
-    ',': 1.24,
-    '.': 1.21,
-    'B': 1.19,
-    'K': 0.74,
-    'V': 0.71,
-    '"': 0.67,
-    '\'': 0.44,
-    '-': 0.26,
-    '?': 0.12,
-    'X': 0.12,
-    'J': 0.12,
-    ';': 0.08,
-    '!': 0.08,
-    'Q': 0.07,
-    'Z': 0.07,
-    ':': 0.03,
-    '1': 0.02,
-    '0': 0.01,
-    ')': 0.01,
-    '*': 0.01,
-    '(': 0.01,
-    '2': 0.01,
-    '`': 0.01,
-    '3': 0.01,
-    '9': 0.01,
-    '5': 0.01,
-    '4': 0.01,
-    '8': 0.00,
-    '7': 0.00,
-    '6': 0.00,
-    '/': 0.00,
-    '_': 0.00,
-    '[': 0.00,
-    '»': 0.00,
-    ']': 0.00,
-    '«': 0.00,
-    '=': 0.00,
-    '´': 0.00,
-    '>': 0.00,
-    '~': 0.00,
-    '<': 0.00,
-    '#': 0.00,
-    '·': 0.00,
-    '&': 0.00,
-    '{': 0.00,
-    '}': 0.00,
-    '^': 0.00,
-    '|': 0.00,
-    '\\': 0.00,
-    '@': 0.00,
-    '%': 0.00,
-    '$': 0.00,
-    'Ñ': 0.00,
-    '\x00': 0.00    #This one is included since there will be a null byte padding in the transpose() function
-}
 
 
 def caesar_cipher(string, key):
@@ -514,7 +436,7 @@ class RSA:
             exit(1)
 
         cipher = pow(message, self.d, self.n)
-        return int.to_bytes(cipher, byteorder="big", length=math.ceil(math.log(cipher, 2**8)))
+        return int.to_bytes(cipher, byteorder="big", length=math.ceil(math.log(cipher, 256)))
 
     def decrypt(self, ciphertext):
         """
@@ -526,7 +448,84 @@ class RSA:
 
         message = int.from_bytes(ciphertext, byteorder="big")
         plaintext = pow(message, self.e, self.n)
-        return int.to_bytes(plaintext, byteorder="big", length=math.ceil(math.log(plaintext, 2**8)))
+        return int.to_bytes(plaintext, byteorder="big", length=math.ceil(math.log(plaintext, 256)))
+
+LETTER_MAP = {
+    ' ': 10.74,
+    'E': 9.60,
+    'T': 7.02,
+    'A': 6.21,
+    'O': 5.84,
+    'I': 5.22,
+    'N': 5.21,
+    'H': 4.87,
+    'S': 4.77,
+    'R': 4.43,
+    'D': 3.52,
+    'L': 3.20,
+    'U': 2.25,
+    'M': 1.94,
+    'C': 1.88,
+    'W': 1.82,
+    'G': 1.66,
+    'F': 1.62,
+    'Y': 1.56,
+    'P': 1.31,
+    ',': 1.24,
+    '.': 1.21,
+    'B': 1.19,
+    'K': 0.74,
+    'V': 0.71,
+    '"': 0.67,
+    '\'': 0.44,
+    '-': 0.26,
+    '?': 0.12,
+    'X': 0.12,
+    'J': 0.12,
+    ';': 0.08,
+    '!': 0.08,
+    'Q': 0.07,
+    'Z': 0.07,
+    ':': 0.03,
+    '1': 0.02,
+    '0': 0.01,
+    ')': 0.01,
+    '*': 0.01,
+    '(': 0.01,
+    '2': 0.01,
+    '`': 0.01,
+    '3': 0.01,
+    '9': 0.01,
+    '5': 0.01,
+    '4': 0.01,
+    '8': 0.00,
+    '7': 0.00,
+    '6': 0.00,
+    '/': 0.00,
+    '_': 0.00,
+    '[': 0.00,
+    '»': 0.00,
+    ']': 0.00,
+    '«': 0.00,
+    '=': 0.00,
+    '´': 0.00,
+    '>': 0.00,
+    '~': 0.00,
+    '<': 0.00,
+    '#': 0.00,
+    '·': 0.00,
+    '&': 0.00,
+    '{': 0.00,
+    '}': 0.00,
+    '^': 0.00,
+    '|': 0.00,
+    '\\': 0.00,
+    '@': 0.00,
+    '%': 0.00,
+    '$': 0.00,
+    'Ñ': 0.00,
+    '\x00': 0.00    #This one is included since there will be a null byte padding in the transpose() function
+}
 
 
 p = measure(generate_prime, 2**random.randint(1024, 1064))
