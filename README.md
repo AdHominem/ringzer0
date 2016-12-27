@@ -1,3 +1,3 @@
 # ringzer0
 
-A python based framework for the ringzer0 CtF for web parsing.
+A python based CtF framework for web parsing, cryptanalysis and binary exploitation.
