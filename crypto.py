@@ -386,6 +386,33 @@ def calculate_points(a, p, x1, y1, x2, y2, recursion=2):
     return calculate_points(a, p, x1, y1, x3, y3, recursion + 1)
 
 
+# ElGamal Signature
+
+
+def elgamal_sign(k_pub, k_priv, message, ephemeral=None):
+
+    modulus, generator, public = k_pub
+
+    while not ephemeral:
+        ek = random.randint(0, modulus-2)
+        if gcd(ek, modulus - 1) == 1:
+            ephemeral = ek
+
+    r = pow(generator, ephemeral, modulus)
+    s = ((message - k_priv * r) * inverse(ephemeral, modulus - 1)) % (modulus - 1)
+
+    return r, s
+
+
+def elgamal_verify(k_pub, signature, message):
+
+    modulus, generator, public = k_pub
+    r, s = signature
+
+    t = public**r * r**s % modulus
+    return t == pow(generator, message, modulus)
+
+
 # RSA
 
 
@@ -528,14 +555,14 @@ LETTER_MAP = {
 }
 
 
-p = measure(generate_prime, 2**random.randint(1024, 1064))
-q = measure(generate_prime, 2**random.randint(1024, 1064))
-print(p)
-print(q)
-
-rsa = RSA(p, q)
-cipher = rsa.encrypt(b"Hello World, how are you today?")
-print(cipher)
-
-decrypted = rsa.decrypt(cipher)
-print(decrypted)
+# p = measure(generate_prime, 2**random.randint(1024, 1064))
+# q = measure(generate_prime, 2**random.randint(1024, 1064))
+# print(p)
+# print(q)
+#
+# rsa = RSA(p, q)
+# cipher = rsa.encrypt(b"Hello World, how are you today?")
+# print(cipher)
+#
+# decrypted = rsa.decrypt(cipher)
+# print(decrypted)
