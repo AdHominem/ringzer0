@@ -231,23 +231,6 @@ def get_normalized_hamming_distance(binary_data, keysize, number_of_chunks=4):
 # Math
 
 
-def gcd(first, second):
-    bigger = first if first > second else second
-    smaller = first if first < second else second
-    return bigger if smaller == 0 else gcd(smaller, bigger % smaller)
-
-
-# Uses the decomposition theorem of an odd prime candidate number
-# For a given integer a, tries to determine if number is composite
-def is_composite(a, odd_part, number, exponent):
-    if pow(a, odd_part, number) == 1:
-        return False
-    for i in range(exponent):
-        if pow(a, 2**i * odd_part, number) == number-1:
-            return False
-    return True
-
-
 # Miller Rabin
 # Extends the decomposition theorem to a number of a's.
 # All necessary as are checked to determine if number is composite
@@ -290,6 +273,49 @@ def is_prime(number, security_parameter = 11):
         if is_composite(a, odd_part, number, exponent):
             return False
     return True
+
+
+
+def gcd(first, second):
+    bigger = first if first > second else second
+    smaller = first if first < second else second
+    return bigger if smaller == 0 else gcd(smaller, bigger % smaller)
+
+
+# Uses the decomposition theorem of an odd prime candidate number
+# For a given integer a, tries to determine if number is composite
+def is_composite(a, odd_part, number, exponent):
+    if pow(a, odd_part, number) == 1:
+        return False
+    for i in range(exponent):
+        if pow(a, 2**i * odd_part, number) == number-1:
+            return False
+    return True
+
+def calculate_order_of_group(modulus):
+    if is_prime(modulus):
+        return modulus - 1
+    else:
+        print ("Not implemented yet!")
+
+def get_factors(number):
+    return [factor for factor in range(1, number + 1) if number % factor == 0]
+
+def calculate_order_of_element(element, modulus):
+    # get divisors of group order
+    order = calculate_order_of_group(modulus)
+    factors = get_factors(order)
+    # for each divisor, take an increasing power until you hit 1
+    print(factors)
+
+calculate_order_of_element(2, 13)
+
+
+def get_smallest_generator(prime):
+    assert is_prime(prime)
+
+    # loop over all numbers modulo p
+    # see if they have ord(prime - 1)
 
 
 # Generates a random prime of at least limit size
@@ -528,14 +554,15 @@ LETTER_MAP = {
 }
 
 
-p = measure(generate_prime, 2**random.randint(1024, 1064))
-q = measure(generate_prime, 2**random.randint(1024, 1064))
-print(p)
-print(q)
+# DH
 
-rsa = RSA(p, q)
-cipher = rsa.encrypt(b"Hello World, how are you today?")
-print(cipher)
 
-decrypted = rsa.decrypt(cipher)
-print(decrypted)
+class DH:
+    def __init__(self, p):
+        self.p = p
+
+    def generate_private_keys(self):
+        self.a = random.randint(self.p)
+        self.b = random.randint(self.p)
+
+
