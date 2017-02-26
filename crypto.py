@@ -231,6 +231,23 @@ def get_normalized_hamming_distance(binary_data, keysize, number_of_chunks=4):
 # Math
 
 
+def gcd(first, second):
+    bigger = first if first > second else second
+    smaller = first if first < second else second
+    return bigger if smaller == 0 else gcd(smaller, bigger % smaller)
+
+
+# Uses the decomposition theorem of an odd prime candidate number
+# For a given integer a, tries to determine if number is composite
+def is_composite(a, odd_part, number, exponent):
+    if pow(a, odd_part, number) == 1:
+        return False
+    for i in range(exponent):
+        if pow(a, 2**i * odd_part, number) == number-1:
+            return False
+    return True
+
+
 # Miller Rabin
 # Extends the decomposition theorem to a number of a's.
 # All necessary as are checked to determine if number is composite
@@ -413,6 +430,33 @@ def calculate_points(a, p, x1, y1, x2, y2, recursion=2):
         x3, y3 = ec_addition(x1, y1, x2, y2, p)
     print(recursion, "P =", (x3, y3))
     return calculate_points(a, p, x1, y1, x3, y3, recursion + 1)
+
+
+# ElGamal Signature
+
+
+def elgamal_sign(k_pub, k_priv, message, ephemeral=None):
+
+    modulus, generator, public = k_pub
+
+    while not ephemeral:
+        ek = random.randint(0, modulus-2)
+        if gcd(ek, modulus - 1) == 1:
+            ephemeral = ek
+
+    r = pow(generator, ephemeral, modulus)
+    s = ((message - k_priv * r) * inverse(ephemeral, modulus - 1)) % (modulus - 1)
+
+    return r, s
+
+
+def elgamal_verify(k_pub, signature, message):
+
+    modulus, generator, public = k_pub
+    r, s = signature
+
+    t = public**r * r**s % modulus
+    return t == pow(generator, message, modulus)
 
 
 # RSA
