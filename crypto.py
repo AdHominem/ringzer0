@@ -292,14 +292,17 @@ def is_composite(a, odd_part, number, exponent):
             return False
     return True
 
+
 def calculate_order_of_group(modulus):
     if is_prime(modulus):
         return modulus - 1
     else:
         print ("Not implemented yet!")
 
+
 def get_factors(number):
     return [factor for factor in range(1, number + 1) if number % factor == 0]
+
 
 def calculate_order_of_element(element, modulus):
     # get divisors of group order
